@@ -4,8 +4,8 @@ import { config } from '../../config.js'
 import { expect, assert } from 'chai'
 import getNestedValue from 'get-nested-value'
 
-export async function request(context, method, path, requestBody = undefined, auth = true, asserts = {statusCode : 200},  host = undefined, customHeaders = undefined) {
-    const requestST = host ? supertest(host) : supertest(config[global.env].host)
+export async function request(context, method, path, requestBody = undefined, auth = true, assertions = {statusCode : 200},  host = undefined, customHeaders = undefined) {
+    const client = host ? supertest(host) : supertest(config[global.env].host)
 
     const headers = customHeaders ? customHeaders : {
         'Content-Type': 'application/json',
@@ -18,105 +18,51 @@ export async function request(context, method, path, requestBody = undefined, au
 
     switch (method) {
         case 'GET':
-            response = await requestST.get(path).set(headers)
+            response = await client.get(path).set(headers)
             responseBody = response.body
-
-            await validateStatusCode(response.statusCode, asserts.statusCode, context, method, path, headers, response)
-
-            if (asserts.expectedFields) {
-                await validateFieldsExists(responseBody, asserts.expectedFields, context, method, path, headers, response)
-            }
-
-            if (asserts.expectedValues) {
-                await validateExpectedValues(responseBody, asserts.expectedValues, context, method, path, headers, response)
-            }
-
-            if (asserts.executionVariables) {
-                await setExecutionVariables(responseBody, asserts.executionVariables)
-            }
-
+            await runAssertions(responseBody, assertions, context, method, path, headers, response)
             break
         case 'POST':
-            response = await requestST.post(path).send(requestBody).set(headers)
+            response = await client.post(path).send(requestBody).set(headers)
             responseBody = response.body
-
-            await validateStatusCode(response.statusCode, asserts.statusCode, context, method, path, headers, response, requestBody)
-
-            if (asserts.expectedFields) {
-                await validateFieldsExists(responseBody, asserts.expectedFields, context, method, path, headers, response, requestBody)
-            }
-
-            if (asserts.expectedValues) {
-                await validateExpectedValues(responseBody, asserts.expectedValues, context, method, path, headers, response, requestBody)
-            }
-
-            if (asserts.executionVariables) {
-                await setExecutionVariables(responseBody, asserts.executionVariables)
-            }
-     
+            await runAssertions(responseBody, assertions, context, method, path, headers, response, requestBody)
             break
         case 'PATCH':
-            response = await requestST.patch(path).send(requestBody).set(headers)
+            response = await client.patch(path).send(requestBody).set(headers)
             responseBody = response.body
-
-            await validateStatusCode(response.statusCode, asserts.statusCode, context, method, path, headers, response, requestBody)
-
-            if (asserts.expectedFields) {
-                await validateFieldsExists(responseBody, asserts.expectedFields, context, method, path, headers, response, requestBody)
-            }
-
-            if (asserts.expectedValues) {
-                await validateExpectedValues(responseBody, asserts.expectedValues, context, method, path, headers, response, requestBody)
-            }
-
-            if (asserts.executionVariables) {
-                await setExecutionVariables(responseBody, asserts.executionVariables)
-            }
-
+            await runAssertions(responseBody, assertions, context, method, path, headers, response, requestBody)
             break
         case 'DELETE':
-            response = await requestST.delete(path).send(requestBody).set(headers)
+            response = await client.delete(path).send(requestBody).set(headers)
             responseBody = response.body
-
-            await validateStatusCode(response.statusCode, asserts.statusCode, context, method, path, headers, response, requestBody)
-
-            if (asserts.expectedFields) {
-                await validateFieldsExists(responseBody, asserts.expectedFields, context, method, path, headers, response, requestBody)
-            }
-
-            if (asserts.expectedValues) {
-                await validateExpectedValues(responseBody, asserts.expectedValues, context, method, path, headers, response, requestBody)
-            }
-
-            if (asserts.executionVariables) {
-                await setExecutionVariables(responseBody, asserts.executionVariables)
-            }
-
+            await runAssertions(responseBody, assertions, context, method, path, headers, response, requestBody)
             break
         case 'PUT':
-            response = await requestST.put(path).send(requestBody).set(headers)
+            response = await client.put(path).send(requestBody).set(headers)
             responseBody = response.body
-
-            await validateStatusCode(response.statusCode, asserts.statusCode, context, method, path, headers, response, requestBody)
-
-            if (asserts.expectedFields) {
-                await validateFieldsExists(responseBody, asserts.expectedFields, context, method, path, headers, response, requestBody)
-            }
-
-            if (asserts.expectedValues) {
-                await validateExpectedValues(responseBody, asserts.expectedValues, context, method, path, headers, response, requestBody)
-            }
-
-            if (asserts.executionVariables) {
-                await setExecutionVariables(responseBody, asserts.executionVariables)
-            }
-
+            await runAssertions(responseBody, assertions, context, method, path, headers, response, requestBody)
             break
         default:
             console.log('not valid request method provided')
     }
 
     return response
+}
+
+async function runAssertions(responseBody, assertions, context, method, path, headers, response, requestBody) {
+    await validateStatusCode(response.statusCode, assertions.statusCode, context, method, path, headers, response, requestBody)
+
+    if (assertions.expectedFields) {
+        await validateFieldsExists(responseBody, assertions.expectedFields, context, method, path, headers, response, requestBody)
+    }
+
+    if (assertions.expectedValues) {
+        await validateExpectedValues(responseBody, assertions.expectedValues, context, method, path, headers, response, requestBody)
+    }
+
+    if (assertions.executionVariables) {
+        await setExecutionVariables(responseBody, assertions.executionVariables)
+    }
 }
 
 async function validateStatusCode(actual, expected, context, method, path, headers, response, requestBody) {
@@ -129,7 +75,7 @@ async function validateStatusCode(actual, expected, context, method, path, heade
 }
 
 async function validateFieldsExists(body, fields, context, method, path, headers, response, requestBody) {
-    fields.every(field => {
+    fields.forEach(field => {
         try {
             expect(getNestedValue(field, body), `${field} present in body`).not.to.be.undefined
         } catch (error) {
