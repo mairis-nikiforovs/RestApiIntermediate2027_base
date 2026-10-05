@@ -1,0 +1,24 @@
+{
+  "name": "api-course",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "author": "Mairis Nikiforovs",
+  "license": "ISC",
+  "scripts": {
+    "user:stg": "ENV=STG mocha 'tests/scenarios/user/crud.js' --require dotenv/config --reporter mochawesome --timeout 20000",
+    "user:prod": "ENV=PROD mocha 'tests/scenarios/user/crud.js' --require dotenv/config --reporter mochawesome --timeout 20000",
+    "user": "mocha 'tests/scenarios/user/crud.js' --require dotenv/config --reporter mochawesome --timeout 20000"
+  },
+  "devDependencies": {
+    "chai": "^5.1.2",
+    "mocha": "^10.8.2",
+    "supertest": "^7.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.5",
+    "get-nested-value": "^1.0.3",
+    "mochawesome": "^7.1.3"
+  },
+  "type": "module"
+}
